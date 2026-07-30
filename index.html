@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday | 3D Experience</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;800&family=Inter:wght@300;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg: #030305;
+            --text: #ffffff;
+            --accent: #00f2ff;
+            --neon-pink: #ff0055;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg);
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px;
+            z-index: 2;
+            pointer-events: none;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2rem, 6vw, 4.5rem);
+            font-weight: 800;
+            margin: 0;
+            background: linear-gradient(45deg, #fff, var(--accent), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            filter: drop-shadow(0 0 15px var(--accent));
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--accent);
+            margin-top: 8px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: auto;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .instructions {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.6);
+            max-width: 260px;
+            line-height: 1.5;
+        }
+
+        .controls-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 242, 255, 0.4);
+            color: var(--text);
+            padding: 12px 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-action:hover, .btn-action.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent);
+        }
+
+        .btn-music.playing {
+            background: var(--neon-pink);
+            color: #fff;
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink);
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px var(--neon-pink); }
+            100% { box-shadow: 0 0 25px var(--neon-pink); }
+        }
+
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.8s ease;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0,242,255,0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin: 0 auto 15px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .overlay { padding: 20px; }
+            .footer { flex-direction: column; align-items: center; text-align: center; }
+            .instructions { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hidden Audio Player -->
+    <audio id="bgMusic" loop preload="auto">
+        <source src="jhol_ring_tone.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="loader">
+        <div style="text-align: center;">
+            <div class="spinner"></div>
+            <p>Loading 3D Experience...</p>
+        </div>
+    </div>
+
+    <div class="overlay">
+        <div class="header">
+            <h1>HAPPY BIRTHDAY!</h1>
+            <p>Hope all your wishes come true</p>
+        </div>
+        <div class="footer">
+            <div class="instructions">
+                • Drag to rotate space<br>
+                • Pinch / Scroll to zoom<br>
+                • Tap music button to play song 🎵
+            </div>
+            <div class="controls-group">
+                <button class="btn-action btn-music" id="musicBtn">
+                    <i class="fa-solid fa-music"></i> <span id="musicText">Play Song</span>
+                </button>
+                <button class="btn-action" id="interactBtn">
+                    <i class="fa-solid fa-gauge-high"></i> Speed
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // ==========================================
+        // 4 PHOTO URLS
+        // ==========================================
+        const photoUrls = [
+            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800', 
+            'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=800', 
+            'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=800', 
+            'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=800'  
+        ];
+
+        let scene, camera, renderer, composer, controls;
+        let coreMesh, particles;
+        const photoPanels = [];
+        let rotationSpeed = 0.005;
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 5.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // 1. Loading Manager
+            const loadingManager = new THREE.LoadingManager(() => {
+                const loaderEl = document.getElementById('loader');
+                loaderEl.style.opacity = '0';
+                setTimeout(() => loaderEl.style.display = 'none', 800);
+            });
+
+            const texLoader = new THREE.TextureLoader(loadingManager);
+
+            // 2. Original Glowing 3D Central Sphere/Core
+            const coreGeo = new THREE.IcosahedronGeometry(0.8, 2);
+            const coreMat = new THREE.MeshPhysicalMaterial({
+                color: 0x00f2ff,
+                emissive: 0xff0055,
+                emissiveIntensity: 0.5,
+                roughness: 0.1,
+                metalness: 0.8,
+                wireframe: true
+            });
+            coreMesh = new THREE.Mesh(coreGeo, coreMat);
+            scene.add(coreMesh);
+
+            // 3. Create 4 Orbiting 3D Photo Panels (Optimized for Image Clarity)
+            const panelGeo = new THREE.PlaneGeometry(1.2, 1.6);
+            const frameGeo = new THREE.BoxGeometry(1.24, 1.64, 0.04);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.8, roughness: 0.2 });
+
+            photoUrls.forEach((url, index) => {
+                const texture = texLoader.load(url);
+                texture.colorSpace = THREE.SRGBColorSpace;
+
+                // MeshBasicMaterial renders raw photo colors directly without being darkened by ambient lights
+                const photoMat = new THREE.MeshBasicMaterial({ 
+                    map: texture, 
+                    side: THREE.DoubleSide 
+                });
+
+                const panel = new THREE.Mesh(panelGeo, photoMat);
+                panel.position.z = 0.01; // Slightly offset forward to prevent overlapping glitches
+                
+                const border = new THREE.Mesh(frameGeo, frameMat);
+                border.position.z = -0.02;
+                
+                const frameGroup = new THREE.Group();
+                frameGroup.add(panel);
+                frameGroup.add(border);
+
+                const angle = (index / 4) * Math.PI * 2;
+                const radius = 2.5;
+                
+                frameGroup.userData = { angle, radius };
+                frameGroup.position.x = Math.cos(angle) * radius;
+                frameGroup.position.z = Math.sin(angle) * radius;
+
+                scene.add(frameGroup);
+                photoPanels.push(frameGroup);
+            });
+
+            // 4. Starfield Particles (Original)
+            const particleCount = 1000;
+            const pGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 15;
+            }
+
+            pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const pMaterial = new THREE.PointsMaterial({ color: 0x00f2ff, size: 0.02 });
+            particles = new THREE.Points(pGeometry, pMaterial);
+            scene.add(particles);
+
+            // 5. Lighting
+            scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+            const light1 = new THREE.PointLight(0xff0055, 8, 10);
+            light1.position.set(3, 3, 3);
+            scene.add(light1);
+
+            // 6. Orbit Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // 7. Post-Processing Bloom Effect
+            composer = new EffectComposer(renderer);
+            composer.addPass(new RenderPass(scene, camera));
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                0.6, // Slight tuned down bloom so core glows without blurring photo content
+                0.3, 
+                0.8
+            );
+            composer.addPass(bloomPass);
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            
+            document.getElementById('interactBtn').addEventListener('click', () => {
+                rotationSpeed = rotationSpeed === 0.005 ? 0.02 : 0.005;
+            });
+
+            // Audio Player Controls
+            const musicBtn = document.getElementById('musicBtn');
+            const musicText = document.getElementById('musicText');
+            const bgMusic = document.getElementById('bgMusic');
+
+            musicBtn.addEventListener('click', () => {
+                if (bgMusic.paused) {
+                    bgMusic.play().then(() => {
+                        musicBtn.classList.add('playing');
+                        musicText.innerText = "Pause Song";
+                    }).catch(e => console.log("Audio play blocked:", e));
+                } else {
+                    bgMusic.pause();
+                    musicBtn.classList.remove('playing');
+                    musicText.innerText = "Play Song";
+                }
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (coreMesh) {
+                coreMesh.rotation.x += 0.005;
+                coreMesh.rotation.y += 0.008;
+            }
+
+            photoPanels.forEach((panelGroup) => {
+                panelGroup.userData.angle += rotationSpeed;
+                const angle = panelGroup.userData.angle;
+                const radius = panelGroup.userData.radius;
+
+                panelGroup.position.x = Math.cos(angle) * radius;
+                panelGroup.position.z = Math.sin(angle) * radius;
+                panelGroup.lookAt(camera.position);
+            });
+
+            if (particles) {
+                particles.rotation.y += 0.0005;
+            }
+
+            controls.update();
+            composer.render();
+        }
+    </script>
+</body>
+</html>
